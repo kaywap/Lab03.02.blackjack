@@ -131,6 +131,7 @@ class BlackjackGame:
         self.show_dealer_first_card_only = True
 
     def player_bet(self,screen):
+        """betting functionality"""
         bet = ''
         clock = pygame.time.Clock()
 
