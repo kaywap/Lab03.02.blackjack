@@ -2,6 +2,7 @@
 # Main game file for Blackjack with Pygame
 # Julian Cochran
 # 04.08.2025
+from tkinter import font
 
 import pygame
 import os
@@ -33,6 +34,10 @@ class BlackjackGame:
     def __init__(self):
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption("Blackjack")
+
+        #scoring
+        self.money = 500
+        self.bet = 0
 
         # Load card images
         self.card_images = {}
@@ -125,6 +130,52 @@ class BlackjackGame:
         self.message = "Your turn: Hit or Stand?"
         self.show_dealer_first_card_only = True
 
+    def player_bet(self,screen):
+        bet = ''
+        clock = pygame.time.Clock()
+
+        # Create a persistent surface
+        input_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        input_surface.fill((0, 0, 0))
+
+        while True:
+            clock.tick(10)  # Limit frame rate
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT or \
+                        (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                    return None
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN and bet:
+                        bet = int(bet)
+                        if bet <= int(self.money):
+                            return bet
+                        else:
+                            print("ur poor, bet less")
+                            bet = ''
+                    elif event.key == pygame.K_BACKSPACE and bet:
+                        bet = bet[:-1]
+                    elif event.unicode.isdigit():
+                        bet += event.unicode.upper()
+
+            name_font = pygame.font.Font(None, 50)
+            #current money
+            money_text = name_font.render(f"Money: {self.money}", True, (255, 255, 255))
+            money_rect = money_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+
+            # Name entry text
+
+            name_text = name_font.render(f'Enter bet: {bet}', True, (255, 255, 255))
+            name_rect = name_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 200))
+
+            # Recreate the surface to avoid flickering
+            screen.blit(input_surface, (0, 0))
+            screen.blit(name_text, name_rect)
+
+            screen.blit(money_text, money_rect)
+
+            pygame.display.flip()
+
     def player_hit(self):
         """Player takes another card"""
         # Deal one card to the player
@@ -132,6 +183,7 @@ class BlackjackGame:
 
         # Check if player busts
         if self.player_hand.is_busted():
+            #bet is already subtracted from money
             self.game_state = STATE_GAME_OVER
             self.message = "You busted! Dealer wins."
             self.show_dealer_first_card_only = False
@@ -156,10 +208,12 @@ class BlackjackGame:
 
         if self.dealer_hand.is_busted():
             self.message = "Dealer busted! You win!"
+            self.money += 2*int(self.bet)
         elif dealer_value > player_value:
             self.message = "Dealer wins!"
         elif player_value > dealer_value:
             self.message = "You win!"
+            self.money += 2*int(self.bet)
         else:
             self.message = "Push! It's a tie."
 
@@ -215,6 +269,12 @@ class BlackjackGame:
         # Fill background
         self.screen.fill(BACKGROUND_COLOR)
 
+        # money
+        money_text = self.font.render(f"Money: {self.money}", True, TEXT_COLOR)
+        bet_text = self.font.render(f"Bet: {self.bet}", True, TEXT_COLOR)
+        self.screen.blit(money_text, (300, 10))
+        self.screen.blit(bet_text, (300, 30))
+
         # Draw hands
         self.draw_hand(self.dealer_hand, 50, 50, True)
         self.draw_hand(self.player_hand, 50, 350)
@@ -244,7 +304,9 @@ class BlackjackGame:
         """Main game loop"""
         running = True
         clock = pygame.time.Clock()
-
+        self.draw_game()
+        self.bet = self.player_bet(self.screen)
+        self.money -= int(self.bet)
         while running:
             # Draw everything
             self.draw_game()
@@ -272,6 +334,8 @@ class BlackjackGame:
                     elif self.game_state == STATE_GAME_OVER:
                         if self.check_button_click(mouse_pos, SCREEN_WIDTH // 2 - 50, 500, 100, 40):
                             self.reset_game()
+                        self.bet = self.player_bet(self.screen)
+                        self.money -= int(self.bet)
 
             # Update display
             pygame.display.flip()
